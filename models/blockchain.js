@@ -154,17 +154,19 @@ class Blockchain {
       throw new Error('Cannot add unsigned or invalid transaction to chain');
     }
 
-    const senderBalance = this.getBalanceOfAddress(transaction.fromAddress);
-    if (senderBalance < transaction.amount) {
-      throw new Error(`Insufficient balance: ${senderBalance} available, ${transaction.amount} required`);
-    }
-
+    // Confirmed balance only (mined blocks). Pending outs reduce what can still be spent.
+    const confirmedBalance = this.getBalanceOfAddress(transaction.fromAddress);
     const pendingOutgoing = this.pendingTransactions
       .filter((tx) => tx.fromAddress === transaction.fromAddress)
-      .reduce((total, tx) => total + tx.amount, 0);
+      .reduce((total, tx) => total + Number(tx.amount), 0);
+    const available = confirmedBalance - pendingOutgoing;
 
-    if (senderBalance < pendingOutgoing + transaction.amount) {
-      throw new Error('Insufficient balance after accounting for pending transactions');
+    if (available < transaction.amount) {
+      throw new Error(
+        `Insufficient balance: ${available} available ` +
+          `(${confirmedBalance} confirmed, ${pendingOutgoing} pending out), ` +
+          `${transaction.amount} required`
+      );
     }
 
     this.pendingTransactions.push(transaction);

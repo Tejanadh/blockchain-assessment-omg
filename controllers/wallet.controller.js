@@ -34,7 +34,7 @@ const getWalletBalance = (req, res) => {
   sendSuccess(res, { address, balance: blockchain.getBalanceOfAddress(address) });
 };
 
-const signAndSubmitTransaction = (req, res, next) => {
+const signAndSubmitTransaction = async (req, res, next) => {
   try {
     const { privateKey, toAddress, amount } = req.body;
 
@@ -57,7 +57,7 @@ const signAndSubmitTransaction = (req, res, next) => {
     });
 
     blockchain.addTransaction(transaction);
-    persistenceService.save(blockchain);
+    await persistenceService.save(blockchain);
 
     sendCreated(res, {
       message: 'Signed transaction added to pending pool',
