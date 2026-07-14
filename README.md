@@ -38,11 +38,11 @@ Client (React)  :3000
 
 ### Transaction flow
 
-1. **Create wallet** — `POST /api/wallets` returns a secp256k1 key pair (public key hex = address).
-2. **Fund via mining** — `POST /api/mine` with `miningRewardAddress` packs a coinbase reward (`fromAddress = null`) into the new block; the miner’s balance increases once that block is on chain.
-3. **Sign & submit** — UI/API signs `{from, to, amount, timestamp}` with the private key (`POST /api/wallets/sign`). The chain rejects missing/invalid signatures and spends that exceed confirmed balance (including other pending outs).
-4. **Pending pool** — Accepted txs sit in memory (+ are persisted) until mined.
-5. **Mine again** — Pending transfers plus a new coinbase reward are hashed under PoW; the chain grows and balances update.
+1. **Create wallet**  `POST /api/wallets` returns a secp256k1 key pair (public key hex = address).
+2. **Fund via mining**  `POST /api/mine` with `miningRewardAddress` packs a coinbase reward (`fromAddress = null`) into the new block; the miner’s balance increases once that block is on chain.
+3. **Sign & submit**  UI/API signs `{from, to, amount, timestamp}` with the private key (`POST /api/wallets/sign`). The chain rejects missing/invalid signatures and spends that exceed confirmed balance (including other pending outs).
+4. **Pending pool**  Accepted txs sit in memory (+ are persisted) until mined.
+5. **Mine again**  Pending transfers plus a new coinbase reward are hashed under PoW; the chain grows and balances update.
 
 ### Proof of work
 
