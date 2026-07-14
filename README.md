@@ -16,13 +16,13 @@ Full-stack assessment submission covering a simplified proof-of-work blockchain,
 ## Architecture
 
 ```text
-Client (React)
-  └─ api/blockchain.api.js
-       └─ Express API (/api)
-            ├─ controllers
-            ├─ models/blockchain.js
-            ├─ services/persistence.service.js
-            └─ services/signing.service.js
+Client (React)  :3000
+  └─ src/api/blockchain.api.js  (+ setupProxy → API)
+       └─ Express API (/api)  :3002
+            ├─ routes → controllers
+            ├─ models/blockchain.js      (Block, Transaction, Blockchain)
+            ├─ services/signing.service.js
+            └─ services/persistence.service.js  → blockchain.json
 ```
 
 ### Blockchain primitives
@@ -30,10 +30,31 @@ Client (React)
 | Concept | Implementation |
 |---|---|
 | Block hash | SHA-256 over `previousHash + timestamp + transactions + nonce` |
-| Proof of work | Block hash must start with `difficulty` leading zeros |
-| Transactions | Signed with ECDSA; mining rewards use `fromAddress = null` |
-| Pending pool | Accepted transactions wait until the next `POST /api/mine` |
-| Persistence | `blockchain.json` stores chain + pending transactions |
+| Proof of work | Increment `nonce` until the hash has `difficulty` leading zeros |
+| Transactions | ECDSA (secp256k1) signatures; mining rewards use `fromAddress = null` |
+| Balances | Account-based: sum inflows − outflows across confirmed blocks only |
+| Pending pool | Valid txs wait until the next `POST /api/mine` |
+| Persistence | JSON file (`BLOCKCHAIN_STATE_PATH`) with restore + re-validation |
+
+### Transaction flow
+
+1. **Create wallet** — `POST /api/wallets` returns a secp256k1 key pair (public key hex = address).
+2. **Fund via mining** — `POST /api/mine` with `miningRewardAddress` packs a coinbase reward (`fromAddress = null`) into the new block; the miner’s balance increases once that block is on chain.
+3. **Sign & submit** — UI/API signs `{from, to, amount, timestamp}` with the private key (`POST /api/wallets/sign`). The chain rejects missing/invalid signatures and spends that exceed confirmed balance (including other pending outs).
+4. **Pending pool** — Accepted txs sit in memory (+ are persisted) until mined.
+5. **Mine again** — Pending transfers plus a new coinbase reward are hashed under PoW; the chain grows and balances update.
+
+### Proof of work
+
+- Hash input: `previousHash + timestamp + JSON(transactions) + nonce`.
+- Target: hash must start with `difficulty` zeros (default `2` via `BLOCKCHAIN_DIFFICULTY`).
+- `isChainValid()` rechecks hashes, previous-hash links, signatures, and PoW on every non-genesis block.
+
+### Persistence
+
+- After successful mine / signed submit, state is written to `blockchain.json` (or `BLOCKCHAIN_STATE_PATH`).
+- On boot, the file is loaded and rehydrated into `Block` / `Transaction` instances; invalid files fall back to a fresh chain (+ optional demo seed).
+- Demo seed (`SEED_DEMO_DATA=true`) mines a funded wallet first, then a signed transfer — it does not invent unfunded addresses.
 
 ## Getting Started
 
