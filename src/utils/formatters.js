@@ -29,3 +29,12 @@ export const formatAddress = (address) => {
   if (!address) return 'Mining Reward';
   return address;
 };
+
+/**
+ * Shortens long wallet addresses for compact UI display.
+ */
+export const truncateAddress = (address, chars = 10) => {
+  if (!address || address === 'Mining Reward') return address;
+  if (address.length <= chars * 2) return address;
+  return `${address.slice(0, chars)}...${address.slice(-chars)}`;
+};

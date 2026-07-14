@@ -1,5 +1,6 @@
 import React from 'react';
 import './BlockchainViewer.css';
+import { truncateHash } from '../utils/formatters';
 
 const BlockchainViewer = ({ blockchain }) => {
   if (!blockchain || !blockchain.chain) {
@@ -25,12 +26,12 @@ const BlockchainViewer = ({ blockchain }) => {
             <div className="block-content">
               <div className="block-field">
                 <span className="field-label">Hash:</span>
-                <span className="field-value hash">{block.hash}</span>
+                <span className="field-value hash" title={block.hash}>{truncateHash(block.hash)}</span>
               </div>
               
               <div className="block-field">
                 <span className="field-label">Previous Hash:</span>
-                <span className="field-value hash">{block.previousHash || 'N/A'}</span>
+                <span className="field-value hash" title={block.previousHash}>{block.previousHash ? truncateHash(block.previousHash) : 'N/A'}</span>
               </div>
               
               <div className="block-field">

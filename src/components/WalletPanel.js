@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import './TransactionForm.css';
 import { createWallet, fetchBalance } from '../api/blockchain.api';
+import { useWallet } from '../context/WalletContext';
+import { truncateAddress } from '../utils/formatters';
 
 const WalletPanel = () => {
-  const [wallet, setWallet] = useState(null);
-  const [balance, setBalance] = useState(null);
+  const { wallet, balance, setWallet, setBalance, clearWallet } = useWallet();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [copiedField, setCopiedField] = useState('');
@@ -14,14 +15,28 @@ const WalletPanel = () => {
     setMessage('');
 
     try {
-      const response = await createWallet();
-      const walletData = response;
+      const walletData = await createWallet();
       setWallet(walletData);
       const balanceResponse = await fetchBalance(walletData.publicKey);
       setBalance(balanceResponse.balance);
       setMessage('Wallet created successfully');
     } catch (err) {
       setMessage(err.message || 'Failed to create wallet');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRefreshBalance = async () => {
+    if (!wallet?.publicKey) return;
+
+    setLoading(true);
+    try {
+      const balanceResponse = await fetchBalance(wallet.publicKey);
+      setBalance(balanceResponse.balance);
+      setMessage('Balance refreshed');
+    } catch (err) {
+      setMessage(err.message || 'Failed to refresh balance');
     } finally {
       setLoading(false);
     }
@@ -40,21 +55,33 @@ const WalletPanel = () => {
   return (
     <div className="transaction-form">
       <h2 className="panel-title">Wallet Studio</h2>
-      <p className="panel-subtitle">Generate a key pair and inspect balance.</p>
+      <p className="panel-subtitle">Generate a secp256k1 key pair and use it to sign transactions.</p>
 
-      <button type="button" className="submit-button" onClick={handleCreateWallet} disabled={loading}>
-        {loading ? 'Generating...' : 'Create Wallet'}
-      </button>
+      <div className="wallet-actions">
+        <button type="button" className="submit-button" onClick={handleCreateWallet} disabled={loading}>
+          {loading ? 'Generating...' : 'Create Wallet'}
+        </button>
+        {wallet && (
+          <>
+            <button type="button" className="secondary-button" onClick={handleRefreshBalance} disabled={loading}>
+              Refresh Balance
+            </button>
+            <button type="button" className="secondary-button" onClick={clearWallet}>
+              Clear Wallet
+            </button>
+          </>
+        )}
+      </div>
 
-      {message && <div className={`form-message ${message.includes('success') ? 'success' : 'error'}`}>{message}</div>}
+      {message && <div className={`form-message ${message.includes('success') || message.includes('refreshed') ? 'success' : 'error'}`}>{message}</div>}
 
-      <div className="wallet-note">Tip: copy your keys before leaving the page.</div>
+      <div className="wallet-note">Tip: copy your keys before leaving the page. The active wallet is shared with the transaction form.</div>
 
       {wallet && (
         <div className="form-group">
-          <label>Public Key</label>
+          <label>Active Wallet</label>
           <div className="value-row">
-            <div className="field-value hash">{wallet.publicKey}</div>
+            <div className="field-value hash">{truncateAddress(wallet.publicKey, 16)}</div>
             <button type="button" className="copy-button" onClick={() => handleCopy(wallet.publicKey, 'publicKey')}>
               {copiedField === 'publicKey' ? 'Copied!' : 'Copy'}
             </button>
@@ -62,9 +89,9 @@ const WalletPanel = () => {
 
           <label>Private Key</label>
           <div className="value-row">
-            <div className="field-value hash">{wallet.privateKey}</div>
+            <div className="field-value hash">••••••••••••••••</div>
             <button type="button" className="copy-button" onClick={() => handleCopy(wallet.privateKey, 'privateKey')}>
-              {copiedField === 'privateKey' ? 'Copied!' : 'Copy'}
+              {copiedField === 'privateKey' ? 'Copied!' : 'Copy PEM'}
             </button>
           </div>
 

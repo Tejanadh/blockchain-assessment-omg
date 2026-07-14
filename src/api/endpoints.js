@@ -9,6 +9,7 @@ const ENDPOINTS = {
   MINE: `${BASE}/mine`,
   STATS: `${BASE}/stats`,
   WALLETS: `${BASE}/wallets`,
+  WALLETS_SIGN: `${BASE}/wallets/sign`,
   balance: (address) => `${BASE}/balance/${encodeURIComponent(address)}`,
 };
 

@@ -123,3 +123,44 @@
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+.wallet-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.secondary-button {
+  padding: 12px 16px;
+  border: 2px solid #667eea;
+  background: white;
+  color: #667eea;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.secondary-button:hover:not(:disabled) {
+  background: #eef2ff;
+}
+
+.pending-panel {
+  margin-top: 20px;
+}
+
+.pending-item {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 10px;
+  background: #f8fafc;
+}
+
+.pending-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+  font-size: 0.9rem;
+}

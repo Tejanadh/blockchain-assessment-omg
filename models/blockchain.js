@@ -133,12 +133,38 @@ class Blockchain {
   }
 
   addTransaction(transaction) {
-    if (!transaction.fromAddress || !transaction.toAddress) {
+    if (!transaction.toAddress) {
+      throw new Error('Transaction must include a recipient address');
+    }
+
+    if (transaction.fromAddress === null) {
+      this.pendingTransactions.push(transaction);
+      return;
+    }
+
+    if (!transaction.fromAddress) {
       throw new Error('Transaction must include from and to address');
+    }
+
+    if (!transaction.signature || transaction.signature.length === 0) {
+      throw new Error('Transaction signature is required');
     }
 
     if (!transaction.isValid()) {
       throw new Error('Cannot add unsigned or invalid transaction to chain');
+    }
+
+    const senderBalance = this.getBalanceOfAddress(transaction.fromAddress);
+    if (senderBalance < transaction.amount) {
+      throw new Error(`Insufficient balance: ${senderBalance} available, ${transaction.amount} required`);
+    }
+
+    const pendingOutgoing = this.pendingTransactions
+      .filter((tx) => tx.fromAddress === transaction.fromAddress)
+      .reduce((total, tx) => total + tx.amount, 0);
+
+    if (senderBalance < pendingOutgoing + transaction.amount) {
+      throw new Error('Insufficient balance after accounting for pending transactions');
     }
 
     this.pendingTransactions.push(transaction);
@@ -158,6 +184,8 @@ class Blockchain {
   }
 
   isChainValid() {
+    const target = Array(this.difficulty + 1).join('0');
+
     for (let i = 1; i < this.chain.length; i++) {
       const current = this.chain[i];
       const previous = this.chain[i - 1];
@@ -165,6 +193,7 @@ class Blockchain {
       if (!current.hasValidTransactions()) return false;
       if (current.hash !== current.calculateHash()) return false;
       if (current.previousHash !== previous.hash) return false;
+      if (current.hash.substring(0, this.difficulty) !== target) return false;
     }
 
     return true;

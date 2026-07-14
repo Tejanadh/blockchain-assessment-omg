@@ -1,59 +1,44 @@
-# Blockchain Explorer and Smart Contract Demo
+# Blockchain Explorer and Smart Contract Assessment
 
-This repository is a compact full-stack demo for exploring blockchain concepts, interacting with a simplified chain, and reviewing a basic Solidity token contract.
+Full-stack assessment submission covering a simplified proof-of-work blockchain, wallet signing flow, React explorer UI, and an ERC-20-style Solidity token with Hardhat tooling.
 
-It combines:
-- a layered Express backend for a simplified blockchain
-- a React-based explorer for interacting with the chain
-- a Solidity smart contract example for assessment and deployment discussion
-- a persistence layer so the chain can survive restarts
+## Highlights
 
----
+- Layered Express backend (`routes → controllers → models/services`)
+- Proof-of-work mining with SHA-256 block hashing and chain validation
+- ECDSA transaction signing using secp256k1 key pairs
+- Balance checks for confirmed and pending outgoing transfers
+- JSON persistence with validation on restore
+- React dashboard with wallet studio, signed transaction flow, and pending pool
+- Extended `AssessmentToken` contract with mint, burn, and ownership controls
+- Hardhat compile/test/deploy workflow
 
-## What’s Included
-
-### Backend
-- Express API with routes for chain, transactions, mining, balance, stats, and wallets
-- Blockchain domain model with block hashing, transaction validation, and mining logic
-- Persistence layer that saves blockchain state to a JSON file
-- Centralized middleware for error handling, logging, validation, and rate limiting
-
-### Frontend
-- React dashboard to inspect blockchain state and mine blocks
-- Wallet creation panel for generating key material and checking balances
-- Transaction form for creating pending transactions
-- Polling-based refresh for near-real-time updates
-
-### Smart Contracts
-- Solidity contract example in [contracts/AssessmentToken.sol](contracts/AssessmentToken.sol)
-- Deployment script in [scripts/deploy-contract.js](scripts/deploy-contract.js)
-
----
-
-## Project Structure
+## Architecture
 
 ```text
-hometask-blockchain/
-├── config/
-├── controllers/
-├── contracts/
-├── middleware/
-├── models/
-├── routes/
-├── scripts/
-├── services/
-├── src/
-├── tests/
-├── package.json
-├── server.js
-└── README.md
+Client (React)
+  └─ api/blockchain.api.js
+       └─ Express API (/api)
+            ├─ controllers
+            ├─ models/blockchain.js
+            ├─ services/persistence.service.js
+            └─ services/signing.service.js
 ```
 
----
+### Blockchain primitives
+
+| Concept | Implementation |
+|---|---|
+| Block hash | SHA-256 over `previousHash + timestamp + transactions + nonce` |
+| Proof of work | Block hash must start with `difficulty` leading zeros |
+| Transactions | Signed with ECDSA; mining rewards use `fromAddress = null` |
+| Pending pool | Accepted transactions wait until the next `POST /api/mine` |
+| Persistence | `blockchain.json` stores chain + pending transactions |
 
 ## Getting Started
 
 ### Prerequisites
+
 - Node.js 18+
 - npm
 
@@ -61,95 +46,86 @@ hometask-blockchain/
 
 ```bash
 npm install
-```
-
-### Configure environment
-
-```bash
 cp .env.example .env
 ```
 
-If you do not have an .env.example file yet, create one with values such as:
-
-```env
-PORT=3002
-NODE_ENV=development
-BLOCKCHAIN_DIFFICULTY=2
-BLOCKCHAIN_MINING_REWARD=100
-INITIAL_MINER_ADDRESS=genesis-miner
-SEED_DEMO_DATA=true
-REACT_APP_API_URL=http://localhost:3002
-```
-
-### Run the app
+### Development
 
 ```bash
-# Terminal 1
+# Terminal 1 — React dev server (port 3000)
 npm start
 
-# Terminal 2
+# Terminal 2 — API server (port 3002)
 npm run dev
 ```
 
-The React app uses the proxy in [src/setupProxy.js](src/setupProxy.js) so browser requests to /api are forwarded to the backend.
+Open `http://localhost:3000`.
 
----
+### Production
+
+```bash
+npm run serve
+```
 
 ## API Overview
 
-All API responses follow this pattern:
+All responses use:
 
 ```json
 { "success": true, "message": "...", ... }
 ```
 
-### Core endpoints
-
 | Method | Path | Description |
 |---|---|---|
-| GET | /api/chain | Return the full blockchain |
-| GET | /api/chain/valid | Return whether the chain is valid |
-| POST | /api/transactions | Add a pending transaction |
-| GET | /api/transactions/pending | View pending transactions |
-| POST | /api/mine | Mine the pending transactions |
-| GET | /api/balance/:address | Get an address balance |
-| GET | /api/stats | View chain and mining statistics |
-| POST | /api/wallets | Generate a wallet-like key pair |
-| GET | /api/wallets/:address | View a balance for a wallet address |
+| GET | `/api/chain` | Return the full blockchain |
+| GET | `/api/chain/valid` | Validate chain integrity and proof-of-work |
+| POST | `/api/transactions` | Add a pre-signed transaction |
+| GET | `/api/transactions/pending` | View pending transactions |
+| POST | `/api/mine` | Mine pending transactions into a new block |
+| GET | `/api/balance/:address` | Get address balance |
+| GET | `/api/stats` | Chain and mining statistics |
+| POST | `/api/wallets` | Generate a wallet key pair |
+| POST | `/api/wallets/sign` | Sign and submit a transaction |
+| GET | `/api/wallets/:address` | Wallet balance lookup |
 
----
+## Wallet and Transaction Flow
 
-## Smart Contract Notes
+1. Create a wallet in the UI (`POST /api/wallets`).
+2. Mine a block so the wallet receives the mining reward.
+3. Send a signed transaction via the transaction form (`POST /api/wallets/sign`).
+4. Inspect the pending pool, then mine again to confirm transfers.
 
-The Solidity contract in [contracts/AssessmentToken.sol](contracts/AssessmentToken.sol) is a simple ERC-20-style token example. It demonstrates:
-- token supply initialization
-- balance tracking
-- transfer and approval flows
-- basic events
+## Smart Contract
 
-It is intended as an assessment artifact and can be extended for more advanced scenarios.
+`contracts/AssessmentToken.sol` is an ERC-20-style token with:
 
----
+- `transfer`, `approve`, `transferFrom`
+- owner-only `mint`
+- holder `burn`
+- `transferOwnership`
+
+### Hardhat commands
+
+```bash
+npm run compile
+npm run test:contracts
+npx hardhat run scripts/deploy-contract.js
+```
 
 ## Testing
 
-A basic regression suite is included in [tests/blockchain.test.js](tests/blockchain.test.js).
-
-Run:
-
 ```bash
-node --test
+npm run test          # Node blockchain regression suite
+npm run test:contracts
+npm run test:all
 ```
-
----
 
 ## Known Limitations
 
-- The blockchain is still a simplified educational implementation, not a production-grade distributed ledger.
-- Wallet generation is demonstration-oriented and does not yet implement a full signing workflow end-to-end in the UI.
-- The smart contract is intentionally simple for assessment purposes.
-
----
+- Educational blockchain only; no networking, mempool sync, or UTXO model
+- Private keys are handled in-browser/server for demo convenience, not HSM-grade security
+- Contract is unaudited and simplified for assessment discussion
+- Demo seed data is optional and can be disabled with `SEED_DEMO_DATA=false`
 
 ## License
 
